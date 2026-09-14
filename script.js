@@ -134,7 +134,25 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-// AUTO SCROLL (movie-credits style — continuous, slow)
+// ON-SCREEN DEBUG OVERLAY — shows console.log output directly on the phone screen.
+// Remove this whole block once debugging is done.
+(function() {
+  const box = document.createElement('div');
+  box.id = 'debug-overlay';
+  box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow-y:auto;' +
+    'background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;' +
+    'padding:8px;z-index:999999;white-space:pre-wrap;';
+  document.body.appendChild(box);
+  const origLog = console.log;
+  console.log = function(...args) {
+    origLog.apply(console, args);
+    const line = document.createElement('div');
+    line.textContent = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  };
+})();
+
 // AUTO SCROLL (movie-credits style — continuous, slow) — mobile-safe version
 let autoScrollRAF = null;
 let doorOpened = false;
@@ -178,11 +196,14 @@ function autoScrollStep() {
 function startAutoScroll() {
   if (!doorOpened || isAutoScrolling) return;
 
-  // snapshot viewport + doc height ONCE, right before starting —
-  // this is the key fix: avoids re-reading window.innerHeight every frame,
-  // which changes on mobile as the browser chrome collapses/expands
+  // CRITICAL FIX: CSS `html { scroll-behavior: smooth }` conflicts with rapid
+  // per-frame scrollTo calls on mobile — each tiny scroll gets treated as its
+  // own smooth animation and cancels the previous one before it finishes,
+  // so nothing visibly moves. Force 'auto' just for the duration of the autoscroll.
+  document.documentElement.style.scrollBehavior = 'auto';
+
   cachedViewportHeight = window.innerHeight;
-  cachedDocHeight = document.documentElement.scrollHeight; // more reliable than document.body.scrollHeight
+  cachedDocHeight = document.documentElement.scrollHeight;
 
   console.log('[autoscroll] starting', {
     viewportHeight: cachedViewportHeight,
@@ -203,6 +224,8 @@ function stopAutoScroll() {
     cancelAnimationFrame(autoScrollRAF);
     autoScrollRAF = null;
   }
+  // restore normal smooth scrolling for nav-dot clicks etc.
+  document.documentElement.style.scrollBehavior = '';
 }
 
 // NOTE: kept 'touchstart' here on purpose (stops scroll on user touch) —
@@ -215,6 +238,7 @@ function stopAutoScroll() {
 });
 
 function openInvitation() {
+  console.log('[openInvitation] called');
   const audio = document.getElementById('bg-audio');
   const icon = document.querySelector('#music-toggle i');
   audio.play().catch(err => console.log('[audio] play blocked:', err));
@@ -227,5 +251,9 @@ function openInvitation() {
   setTimeout(() => { overlay.style.display = 'none'; }, 800);
 
   doorOpened = true;
-  setTimeout(startAutoScroll, 1500);
+  console.log('[openInvitation] doorOpened=true, scheduling startAutoScroll in 1500ms');
+  setTimeout(() => {
+    console.log('[timeout fired] calling startAutoScroll, doorOpened=', doorOpened);
+    startAutoScroll();
+  }, 1500);
 }
