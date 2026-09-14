@@ -1,22 +1,7 @@
-    // ADD THIS FIRST
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
   }
   window.scrollTo(0, 0);
-
-// function openInvitation() {
-//   const audio = document.getElementById('bg-audio');
-//   const icon = document.querySelector('#music-toggle i');
-//   audio.play();
-//   icon.classList.remove('fa-music');
-//   icon.classList.add('fa-pause');
-
-//   const overlay = document.getElementById('door-overlay');
-//   overlay.style.opacity = '0';
-//   overlay.style.visibility = 'hidden';
-//   setTimeout(() => { overlay.style.display = 'none'; }, 800);
-// }
-
 
 function toggleMusicPlayer() {
   const audio = document.getElementById('bg-audio');
@@ -134,26 +119,9 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-// ON-SCREEN DEBUG OVERLAY — shows console.log output directly on the phone screen.
-// Remove this whole block once debugging is done.
-(function() {
-  const box = document.createElement('div');
-  box.id = 'debug-overlay';
-  box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow-y:auto;' +
-    'background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;' +
-    'padding:8px;z-index:999999;white-space:pre-wrap;';
-  document.body.appendChild(box);
-  const origLog = console.log;
-  console.log = function(...args) {
-    origLog.apply(console, args);
-    const line = document.createElement('div');
-    line.textContent = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-    box.appendChild(line);
-    box.scrollTop = box.scrollHeight;
-  };
-})();
 
-// AUTO SCROLL (movie-credits style — continuous, slow) — mobile-safe version
+
+// AUTO SCROLL 
 let autoScrollRAF = null;
 let doorOpened = false;
 let isAutoScrolling = false;
@@ -166,7 +134,6 @@ const SCROLL_SPEED = 0.8; // px per frame — lower = slower
 function autoScrollStep() {
   if (!isAutoScrolling) return;
 
-  // use cached values instead of reading live — avoids mobile address-bar resize glitches
   const atBottom = cachedViewportHeight + window.scrollY >= cachedDocHeight - 2;
   if (atBottom) {
     console.log('[autoscroll] stopped: reached bottom', {
@@ -195,11 +162,6 @@ function autoScrollStep() {
 
 function startAutoScroll() {
   if (!doorOpened || isAutoScrolling) return;
-
-  // CRITICAL FIX: CSS `html { scroll-behavior: smooth }` conflicts with rapid
-  // per-frame scrollTo calls on mobile — each tiny scroll gets treated as its
-  // own smooth animation and cancels the previous one before it finishes,
-  // so nothing visibly moves. Force 'auto' just for the duration of the autoscroll.
   document.documentElement.style.scrollBehavior = 'auto';
 
   cachedViewportHeight = window.innerHeight;
@@ -224,13 +186,9 @@ function stopAutoScroll() {
     cancelAnimationFrame(autoScrollRAF);
     autoScrollRAF = null;
   }
-  // restore normal smooth scrolling for nav-dot clicks etc.
   document.documentElement.style.scrollBehavior = '';
 }
 
-// NOTE: kept 'touchstart' here on purpose (stops scroll on user touch) —
-// if you find it's stopping too eagerly on mobile, try removing 'touchstart'
-// and relying on 'wheel' + 'keydown' + a custom touchmove-with-distance-check instead
 ['touchstart', 'mousedown', 'wheel', 'keydown'].forEach(event => {
   document.addEventListener(event, () => {
     stopAutoScroll();
