@@ -135,18 +135,27 @@ form.addEventListener("submit", async (e) => {
 });
 
 // AUTO SCROLL (movie-credits style — continuous, slow)
+// AUTO SCROLL (movie-credits style — continuous, slow) — mobile-safe version
 let autoScrollRAF = null;
 let doorOpened = false;
 let isAutoScrolling = false;
 let scrollAccumulator = 0;
+let cachedViewportHeight = 0;
+let cachedDocHeight = 0;
 
 const SCROLL_SPEED = 0.8; // px per frame — lower = slower
 
 function autoScrollStep() {
   if (!isAutoScrolling) return;
 
-  const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 2;
+  // use cached values instead of reading live — avoids mobile address-bar resize glitches
+  const atBottom = cachedViewportHeight + window.scrollY >= cachedDocHeight - 2;
   if (atBottom) {
+    console.log('[autoscroll] stopped: reached bottom', {
+      viewportHeight: cachedViewportHeight,
+      scrollY: window.scrollY,
+      docHeight: cachedDocHeight
+    });
     isAutoScrolling = false;
     return;
   }
@@ -168,12 +177,27 @@ function autoScrollStep() {
 
 function startAutoScroll() {
   if (!doorOpened || isAutoScrolling) return;
+
+  // snapshot viewport + doc height ONCE, right before starting —
+  // this is the key fix: avoids re-reading window.innerHeight every frame,
+  // which changes on mobile as the browser chrome collapses/expands
+  cachedViewportHeight = window.innerHeight;
+  cachedDocHeight = document.documentElement.scrollHeight; // more reliable than document.body.scrollHeight
+
+  console.log('[autoscroll] starting', {
+    viewportHeight: cachedViewportHeight,
+    docHeight: cachedDocHeight
+  });
+
   isAutoScrolling = true;
   scrollAccumulator = 0;
   autoScrollRAF = requestAnimationFrame(autoScrollStep);
 }
 
 function stopAutoScroll() {
+  if (isAutoScrolling) {
+    console.log('[autoscroll] stopped: user interaction');
+  }
   isAutoScrolling = false;
   if (autoScrollRAF) {
     cancelAnimationFrame(autoScrollRAF);
@@ -181,6 +205,9 @@ function stopAutoScroll() {
   }
 }
 
+// NOTE: kept 'touchstart' here on purpose (stops scroll on user touch) —
+// if you find it's stopping too eagerly on mobile, try removing 'touchstart'
+// and relying on 'wheel' + 'keydown' + a custom touchmove-with-distance-check instead
 ['touchstart', 'mousedown', 'wheel', 'keydown'].forEach(event => {
   document.addEventListener(event, () => {
     stopAutoScroll();
@@ -190,7 +217,7 @@ function stopAutoScroll() {
 function openInvitation() {
   const audio = document.getElementById('bg-audio');
   const icon = document.querySelector('#music-toggle i');
-  audio.play();
+  audio.play().catch(err => console.log('[audio] play blocked:', err));
   icon.classList.remove('fa-music');
   icon.classList.add('fa-pause');
 
@@ -199,7 +226,6 @@ function openInvitation() {
   overlay.style.visibility = 'hidden';
   setTimeout(() => { overlay.style.display = 'none'; }, 800);
 
-  // Enable movie-credits auto-scroll
   doorOpened = true;
   setTimeout(startAutoScroll, 1500);
 }
