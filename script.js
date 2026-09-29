@@ -41,7 +41,7 @@ const revealObserver = new IntersectionObserver((entries) => {
   });
 
 }, {
-  // threshold: 0.2,
+  threshold: 0.2,
   threshold: 0,
   rootMargin: '0px 0px -1% 0px' // 
 
@@ -130,6 +130,7 @@ let cachedViewportHeight = 0;
 let cachedDocHeight = 0;
 
 const SCROLL_SPEED = 0.8; // px per frame — lower = slower
+const AUTOSCROLL_ENABLED = false; // set to true to bring autoscroll back
 
 function autoScrollStep() {
   if (!isAutoScrolling) return;
@@ -161,11 +162,18 @@ function autoScrollStep() {
 }
 
 function startAutoScroll() {
-  if (!doorOpened || isAutoScrolling) return;
+  // if (!doorOpened || isAutoScrolling) return;
+  // document.documentElement.style.scrollBehavior = 'auto';
+
+  // cachedViewportHeight = window.innerHeight;
+  // cachedDocHeight = document.documentElement.scrollHeight;
+
+  if (!AUTOSCROLL_ENABLED || !doorOpened || isAutoScrolling) return;
   document.documentElement.style.scrollBehavior = 'auto';
 
   cachedViewportHeight = window.innerHeight;
   cachedDocHeight = document.documentElement.scrollHeight;
+
 
   console.log('[autoscroll] starting', {
     viewportHeight: cachedViewportHeight,
